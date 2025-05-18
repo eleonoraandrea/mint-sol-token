@@ -268,8 +268,8 @@ export default function TokenForm() {
       // Simulate the transaction
       console.log("Simulating transaction...");
       try {
-        // Remove [mintKeypair] from simulateTransaction call
-        const simulationResult = await connection.simulateTransaction(transaction); 
+        // Simplified simulateTransaction call for legacy Transaction
+        const simulationResult = await connection.simulateTransaction(transaction);
         console.log("Transaction simulation result:", simulationResult);
         if (simulationResult.value.err) {
           console.error("Transaction simulation failed:", simulationResult.value.err);
