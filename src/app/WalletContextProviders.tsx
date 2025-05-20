@@ -24,7 +24,7 @@ export function WalletContextProviders({ children }: { children: React.ReactNode
     // e.g., toast.error(`Wallet error: ${error.message}`);
   }, []);
 
-  const network = WalletAdapterNetwork.MainnetBeta; // Corrected to MainnetBeta
+  const network = WalletAdapterNetwork.Mainnet; // Changed to Mainnet
   const endpoint = useMemo(() => {
     // Use environment variable for RPC endpoint if available, otherwise default to clusterApiUrl
     const rpcEndpoint = process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT || clusterApiUrl(network);

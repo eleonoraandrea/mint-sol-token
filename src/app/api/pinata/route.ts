@@ -55,26 +55,31 @@ export async function POST(request: Request) {
       }
     };
 
-    // @ts-ignore pinata.pinFileToIPFS might expect a specific stream type or options structure
+    // @ts-expect-error pinata.pinFileToIPFS might expect a specific stream type or options structure
     // that differs slightly, but this is the general usage pattern.
     const result = await pinata.pinFileToIPFS(stream, options);
 
     return NextResponse.json({ ipfsHash: result.IpfsHash }, { status: 200 });
 
-  } catch (error) {
+  } catch (error: unknown) { // Explicitly type error as unknown
     console.error('Error uploading to Pinata with SDK:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    let details = errorMessage;
-    // Attempt to extract more specific error details if available from the SDK error
+    
+    const initialMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    let details: string | unknown = initialMessage; // details can be unknown, matching original behavior
+
     if (error && typeof error === 'object') {
-        if ('details' in error && (error as any).details) {
-            details = (error as any).details;
-        } else if ('reason' in error && (error as any).reason) {
-            details = (error as any).reason;
-        } else if ('message' in error && (error as any).message) {
-            details = (error as any).message; // Fallback to message if other fields are not present
+        // Check for properties safely. The 'in' operator narrows the type of 'error'.
+        if ('details' in error && error.details !== undefined && error.details !== null) {
+            details = error.details;
+        } else if ('reason' in error && error.reason !== undefined && error.reason !== null) {
+            details = error.reason;
+        } else if ('message' in error && error.message !== undefined && error.message !== null && !(error instanceof Error)) {
+            // If 'error' is not an Error instance but has a 'message' property that's not already captured
+            details = error.message;
         }
+        // If none of the specific properties are found, 'details' remains 'initialMessage'
     }
+    // 'details' will be stringified by NextResponse.json if it's not already a string
     return NextResponse.json({ error: 'Failed to upload image to IPFS using SDK.', details: details }, { status: 500 });
   }
 }

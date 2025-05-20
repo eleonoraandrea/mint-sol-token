@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react'; // Removed useCallback
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -145,7 +145,7 @@ export default function TokenForm() {
       }
     });
     if (Object.keys(metadata.extensions).length === 0) {
-        // @ts-ignore
+        // @ts-expect-error - Deleting the extensions object if it's empty.
         delete metadata.extensions; // Delete extensions object if empty
     }
 
@@ -292,9 +292,21 @@ export default function TokenForm() {
           throw new Error(`Transaction simulation failed: ${JSON.stringify(simulationResult.value.err)}. Logs: ${simulationResult.value.logs?.join('\\n')}`);
         }
         console.log("Transaction simulation successful. Logs:", simulationResult.value.logs);
-      } catch (simError: any) {
+      } catch (simError: unknown) { // Changed to unknown
         console.error("Error during simulation:", simError);
-        setProcessingError(`Simulation error: ${simError.message || JSON.stringify(simError)}`);
+        let message = 'An unknown simulation error occurred.';
+        if (simError instanceof Error) {
+          message = simError.message;
+        } else if (typeof simError === 'object' && simError !== null && 'message' in simError) {
+          message = String((simError as {message: unknown}).message);
+        } else {
+          try {
+            message = JSON.stringify(simError);
+          } catch {
+            // If stringify fails, keep the generic message
+          }
+        }
+        setProcessingError(`Simulation error: ${message}`);
         setIsProcessing(null);
         return;
       }
@@ -309,22 +321,34 @@ export default function TokenForm() {
       setMintingSuccessMessage(`Token minted successfully! Signature: ${signature}. Mint Address: ${mintKeypair.publicKey.toBase58()}`);
       console.log('Token minted:', mintKeypair.publicKey.toBase58());
 
-    } catch (error: any) { // Changed error type to any for easier property access
+    } catch (error: unknown) { // Changed error type to unknown
       console.error('Full minting error object:', error);
-      console.error('Error Name:', error?.name);
-      console.error('Error Message:', error?.message);
-      const errorLogs = (error && typeof error === 'object' && 'logs' in error && Array.isArray(error.logs)) ? error.logs : null;
-      console.error('Error Logs:', errorLogs);
-      
-      let detailedMessage = 'An unknown error occurred during minting.';
+
+      let name = 'UnknownError';
+      let message = 'An unknown error occurred during minting.';
+      let logs: string[] | null = null;
+
       if (error instanceof Error) {
-        detailedMessage = error.message;
-      } else if (typeof error === 'object' && error !== null && 'message' in error) {
-        detailedMessage = String((error as {message: string}).message);
+        name = error.name;
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        if ('name' in error && typeof error.name === 'string') name = error.name;
+        if ('message' in error && typeof error.message === 'string') message = error.message;
+      }
+      
+      // Attempt to access logs safely
+      if (typeof error === 'object' && error !== null && 'logs' in error && Array.isArray(error.logs)) {
+        logs = error.logs.filter((log): log is string => typeof log === 'string');
       }
 
-      if (errorLogs && errorLogs.length > 0) {
-        detailedMessage += ` | Logs: ${errorLogs.join('\\n')}`;
+      console.error('Error Name:', name);
+      console.error('Error Message:', message);
+      console.error('Error Logs:', logs);
+      
+      let detailedMessage = message;
+
+      if (logs && logs.length > 0) {
+        detailedMessage += ` | Logs: ${logs.join('\\n')}`;
       }
       
       setProcessingError(detailedMessage);
