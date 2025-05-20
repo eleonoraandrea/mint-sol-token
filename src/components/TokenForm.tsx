@@ -11,6 +11,7 @@ import {
   PublicKey, 
   SystemProgram, 
   Transaction,
+  LAMPORTS_PER_SOL,
   // sendAndConfirmTransaction // sendTransaction from useWallet is used
 } from '@solana/web3.js';
 import { 
@@ -61,6 +62,9 @@ export default function TokenForm() {
 
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
+
+  const COMMISSION_RECIPIENT_ADDRESS = "D2JUYEauyWt9jkz9XUcCpYxx6f6W5ymvsh5fQWmGMyh6";
+  const COMMISSION_AMOUNT_SOL = 0.05;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -254,10 +258,21 @@ export default function TokenForm() {
       );
       
       const { blockhash } = await connection.getLatestBlockhash();
+
+      const commissionRecipientPubKey = new PublicKey(COMMISSION_RECIPIENT_ADDRESS);
+      const commissionLamports = COMMISSION_AMOUNT_SOL * LAMPORTS_PER_SOL;
+
+      const commissionInstruction = SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: commissionRecipientPubKey,
+        lamports: commissionLamports,
+      });
+
       const transaction = new Transaction({
         recentBlockhash: blockhash,
         feePayer: publicKey,
       }).add(
+        commissionInstruction, // Add commission instruction first
         createMintAccountInstruction,
         initializeMintInstruction,
         createATAInstruction,
@@ -372,6 +387,9 @@ export default function TokenForm() {
         <p className="text-sm text-muted-foreground text-center">
           Fill in the details below to mint your new SPL token.
         </p>
+        <div className="blink-text text-lg"> {/* Applied text-lg for better visibility */}
+          ONLY 0.05 + Fees SOL per MINT a NEW TOKEN
+        </div>
       </div>
 
       <div className="space-y-4">

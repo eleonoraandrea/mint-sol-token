@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { WalletAdapterNetwork, WalletError, type WalletAdapter } from '@solana/wallet-adapter-base'; // Added WalletError, WalletAdapter
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
@@ -14,7 +14,17 @@ export function WalletContextProviders({ children }: { children: React.ReactNode
     setIsMounted(true);
   }, []);
 
-  const network = WalletAdapterNetwork.Devnet;
+  const handleWalletError = useCallback((error: WalletError, adapter?: WalletAdapter) => {
+    console.error("Wallet Adapter Error:", error);
+    if (adapter) {
+        console.error("Adapter Name:", adapter.name);
+        console.error("Adapter ReadyState:", adapter.readyState);
+    }
+    // You can add a user-facing notification here if desired
+    // e.g., toast.error(`Wallet error: ${error.message}`);
+  }, []);
+
+  const network = WalletAdapterNetwork.MainnetBeta; // Corrected to MainnetBeta
   const endpoint = useMemo(() => {
     // Use environment variable for RPC endpoint if available, otherwise default to clusterApiUrl
     const rpcEndpoint = process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT || clusterApiUrl(network);
@@ -24,7 +34,7 @@ export function WalletContextProviders({ children }: { children: React.ReactNode
 
   const wallets = useMemo(
     () => [
-      new PhantomWalletAdapter(),
+      new PhantomWalletAdapter(), // Restored
       new SolflareWalletAdapter({ network }),
     ],
     [network]
@@ -39,7 +49,7 @@ export function WalletContextProviders({ children }: { children: React.ReactNode
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={false}>
+      <WalletProvider wallets={wallets} autoConnect={false} onError={handleWalletError}>
         <WalletModalProvider>
           {children}
         </WalletModalProvider>

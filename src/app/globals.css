@@ -120,3 +120,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
+
+.blink-text {
+  animation: blinker 1s linear infinite;
+  color: #ffcc00; /* A gold-like color for emphasis */
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1rem; /* Add some space below the blinking text */
+}
